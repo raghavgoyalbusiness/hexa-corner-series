@@ -6,7 +6,7 @@
  * Swap in recorded assets later by decoding them into AudioBuffers here.
  */
 
-import { DEMO_PATH, ROOM, type Vec3 } from './speakers';
+import { DEMO_PATH, ROOM, SPEAKERS, speakerPoint, type Vec3 } from './speakers';
 
 export type DemoFrame = {
   /** Position on the top-down plan, normalised 0..1. */
@@ -17,7 +17,7 @@ export type DemoFrame = {
   t: number;
 };
 
-const DEMO_SECONDS = 14;
+const DEMO_SECONDS = 20;
 
 class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -118,17 +118,40 @@ class AudioEngine {
     return this.stopDemo !== null;
   }
 
+  /** Synthesised room reverb: stereo noise with an exponential tail. */
+  private makeReverb(ctx: AudioContext, seconds = 3.4) {
+    const len = Math.floor(ctx.sampleRate * seconds);
+    const ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch);
+      let lp = 0;
+      for (let i = 0; i < len; i++) {
+        // Gently low-passed noise so the tail is warm, not hissy.
+        lp = lp * 0.55 + (Math.random() * 2 - 1) * 0.45;
+        d[i] = lp * Math.pow(1 - i / len, 2.6);
+      }
+    }
+    const conv = ctx.createConvolver();
+    conv.buffer = ir;
+    return conv;
+  }
+
   /**
-   * A synthesised helicopter (chopped broadband noise + rotor thump) carried
-   * around all six speaker positions by an HRTF PannerNode. The listener sits
-   * on the sofa facing the TV wall, so it reads correctly on headphones.
+   * "Orbit": a ~20 s ambient piece written for six corners.
+   * - A Dmaj9 → Bm9 → Gmaj9 chord blooms around the listener, one voice
+   *   pinned to each speaker (six static HRTF panners).
+   * - A music-box melody and a shimmer trail fly a lap through every corner
+   *   on a moving HRTF panner; a bell accent rings as it passes each speaker.
+   * - Everything sits in a synthesised room reverb.
+   * The listener is on the sofa facing the TV wall, so it reads on headphones.
    */
   startSpatialDemo(onFrame: (f: DemoFrame) => void, onEnd: () => void) {
     const ctx = this.unlock();
     if (!ctx || !this.master) return;
     this.stopDemo?.();
 
-    const t0 = ctx.currentTime + 0.05;
+    const t0 = ctx.currentTime + 0.08;
+    const tEnd = t0 + DEMO_SECONDS;
 
     // Listener on the sofa, facing the TV wall (-Z), head up (+Y).
     const L = ROOM.listener;
@@ -148,60 +171,173 @@ class AudioEngine {
       l.setOrientation(0, 0, -1, 0, 1, 0);
     }
 
-    const panner = ctx.createPanner();
-    panner.panningModel = 'HRTF';
-    panner.distanceModel = 'inverse';
-    panner.refDistance = 1.2;
-    panner.rolloffFactor = 0.8;
+    const hrtf = () => {
+      const pn = ctx.createPanner();
+      pn.panningModel = 'HRTF';
+      pn.distanceModel = 'inverse';
+      pn.refDistance = 1.2;
+      pn.rolloffFactor = 0.7;
+      return pn;
+    };
 
+    // Output: dry + reverb, with a gentle fade in / out.
     const out = ctx.createGain();
     out.gain.setValueAtTime(0.0001, t0);
-    out.gain.exponentialRampToValueAtTime(1, t0 + 0.8);
-    out.gain.setValueAtTime(1, t0 + DEMO_SECONDS - 1);
-    out.gain.exponentialRampToValueAtTime(0.0001, t0 + DEMO_SECONDS);
-    panner.connect(out).connect(this.master);
+    out.gain.exponentialRampToValueAtTime(1, t0 + 1.2);
+    out.gain.setValueAtTime(1, tEnd - 2.5);
+    out.gain.exponentialRampToValueAtTime(0.0001, tEnd);
+    out.connect(this.master);
+    const bus = ctx.createGain();
+    bus.gain.value = 0.85;
+    const reverb = this.makeReverb(ctx);
+    const wet = ctx.createGain();
+    wet.gain.value = 0.55;
+    bus.connect(out);
+    bus.connect(reverb).connect(wet).connect(out);
 
-    // Rotor chop: an LFO amplitude-modulates everything below.
-    const chop = ctx.createGain();
-    chop.gain.value = 0.55;
-    const lfo = ctx.createOscillator();
-    lfo.type = 'sawtooth';
-    lfo.frequency.value = 11;
-    const lfoDepth = ctx.createGain();
-    lfoDepth.gain.value = 0.45;
-    lfo.connect(lfoDepth).connect(chop.gain);
-    chop.connect(panner);
+    const sources: AudioScheduledSourceNode[] = [];
+    const track = <T extends AudioScheduledSourceNode>(n: T) => {
+      sources.push(n);
+      n.onended = () => {
+        const i = sources.indexOf(n);
+        if (i >= 0) sources.splice(i, 1);
+      };
+      return n;
+    };
 
-    // Blade wash: looping noise, low-passed.
-    const wash = ctx.createBufferSource();
-    wash.buffer = this.getNoise(ctx);
-    wash.loop = true;
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 1400;
-    const washGain = ctx.createGain();
-    washGain.gain.value = 0.9;
-    wash.connect(lp).connect(washGain).connect(chop);
+    // --- Chord bed: one voice per speaker -------------------------------
+    const CHORDS: { at: number; notes: number[] }[] = [
+      // Order matches SPEAKERS: flh, frh, fll, frl, rlh, rrh.
+      { at: 0, notes: [329.63, 369.99, 146.83, 220.0, 440.0, 554.37] }, // Dmaj9
+      { at: 0.45, notes: [277.18, 293.66, 123.47, 185.0, 369.99, 440.0] }, // Bm9
+      { at: 0.72, notes: [246.94, 293.66, 98.0, 146.83, 369.99, 440.0] }, // Gmaj9
+    ];
+    SPEAKERS.forEach((spk, i) => {
+      const pn = hrtf();
+      const [x, y, z] = speakerPoint(spk);
+      if (pn.positionX) {
+        pn.positionX.value = x;
+        pn.positionY.value = y;
+        pn.positionZ.value = z;
+      } else {
+        pn.setPosition(x, y, z);
+      }
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 900;
+      lp.Q.value = 0.4;
+      const amp = ctx.createGain();
+      const level = i >= 2 && i <= 3 ? 0.075 : 0.05; // low voices a touch louder
+      amp.gain.setValueAtTime(0.0001, t0);
+      amp.gain.exponentialRampToValueAtTime(level, t0 + 2.6 + i * 0.35);
+      lp.connect(amp).connect(pn).connect(bus);
 
-    // Rotor thump.
-    const thump = ctx.createOscillator();
-    thump.type = 'triangle';
-    thump.frequency.value = 58;
-    const thumpGain = ctx.createGain();
-    thumpGain.gain.value = 0.5;
-    thump.connect(thumpGain).connect(chop);
+      [-5, 5].forEach((cents, j) => {
+        const osc = track(ctx.createOscillator());
+        osc.type = j === 0 ? 'triangle' : 'sawtooth';
+        osc.detune.value = cents;
+        CHORDS.forEach((c, k) => {
+          const at = t0 + c.at * DEMO_SECONDS;
+          if (k === 0) osc.frequency.setValueAtTime(c.notes[i], at);
+          else osc.frequency.setTargetAtTime(c.notes[i], at, 0.35);
+        });
+        const g = ctx.createGain();
+        g.gain.value = j === 0 ? 1 : 0.35;
+        osc.connect(g).connect(lp);
+        osc.start(t0);
+        osc.stop(tEnd + 0.1);
+      });
 
-    // Faint turbine whine, unchopped, so the source stays traceable.
-    const whine = ctx.createOscillator();
-    whine.type = 'sine';
-    whine.frequency.value = 1760;
-    const whineGain = ctx.createGain();
-    whineGain.gain.value = 0.025;
-    whine.connect(whineGain).connect(panner);
+      // Slow filter breathing, offset per speaker so the bed shimmers around you.
+      const lfo = track(ctx.createOscillator());
+      lfo.frequency.value = 0.07 + i * 0.013;
+      const depth = ctx.createGain();
+      depth.gain.value = 380;
+      lfo.connect(depth).connect(lp.frequency);
+      lfo.start(t0);
+      lfo.stop(tEnd + 0.1);
+    });
 
-    const sources = [lfo, wash, thump, whine];
-    sources.forEach((s) => s.start(t0));
-    sources.forEach((s) => s.stop(t0 + DEMO_SECONDS + 0.05));
+    // Warm sub swell under the bed (non-directional).
+    const sub = track(ctx.createOscillator());
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(73.42, t0);
+    sub.frequency.setTargetAtTime(61.74, t0 + 0.45 * DEMO_SECONDS, 0.4);
+    sub.frequency.setTargetAtTime(49.0, t0 + 0.72 * DEMO_SECONDS, 0.4);
+    const subGain = ctx.createGain();
+    subGain.gain.setValueAtTime(0.0001, t0);
+    subGain.gain.exponentialRampToValueAtTime(0.12, t0 + 4);
+    sub.connect(subGain).connect(bus);
+    sub.start(t0);
+    sub.stop(tEnd + 0.1);
+
+    // --- The orbiting voice ---------------------------------------------
+    const panner = hrtf();
+    const voice = ctx.createGain();
+    voice.gain.value = 1;
+    voice.connect(panner).connect(bus);
+
+    // Shimmer trail: airy band-passed noise, so the ear can track position.
+    const air = track(ctx.createBufferSource());
+    air.buffer = this.getNoise(ctx);
+    air.loop = true;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 5200;
+    bp.Q.value = 1.1;
+    const airGain = ctx.createGain();
+    airGain.gain.setValueAtTime(0.0001, t0);
+    airGain.gain.exponentialRampToValueAtTime(0.03, t0 + 1.5);
+    air.connect(bp).connect(airGain).connect(voice);
+    air.start(t0);
+    air.stop(tEnd + 0.1);
+
+    /** FM bell / music-box tone. */
+    const bell = (at: number, freq: number, gain: number, decay = 1.6) => {
+      const car = track(ctx.createOscillator());
+      car.frequency.value = freq;
+      const mod = track(ctx.createOscillator());
+      mod.frequency.value = freq * 3.51;
+      const modGain = ctx.createGain();
+      modGain.gain.setValueAtTime(freq * 1.8, at);
+      modGain.gain.exponentialRampToValueAtTime(freq * 0.05, at + decay * 0.6);
+      mod.connect(modGain).connect(car.frequency);
+      const amp = ctx.createGain();
+      amp.gain.setValueAtTime(0.0001, at);
+      amp.gain.exponentialRampToValueAtTime(gain, at + 0.006);
+      amp.gain.exponentialRampToValueAtTime(0.0001, at + decay);
+      car.connect(amp).connect(voice);
+      car.start(at);
+      mod.start(at);
+      car.stop(at + decay + 0.05);
+      mod.stop(at + decay + 0.05);
+    };
+
+    // D major pentatonic, two octaves; a looping, slightly varied figure.
+    const SCALE = [587.33, 659.25, 739.99, 880.0, 987.77, 1174.66, 1318.51, 1479.98];
+    const FIGURE = [0, 2, 3, 5, 4, 3, 2, 1, 2, 4, 5, 7, 6, 5, 3, 2];
+    const STEP = 0.3;
+    let nextNote = t0 + 0.9;
+    let noteIndex = 0;
+    let lastActive = -1;
+
+    const schedule = (active: number) => {
+      while (nextNote < ctx.currentTime + 0.12 && nextNote < tEnd - 1.8) {
+        const deg = FIGURE[noteIndex % FIGURE.length] + (noteIndex >= 32 ? -1 : 0);
+        const f = SCALE[Math.max(0, deg)];
+        const accent = noteIndex % 4 === 0;
+        bell(nextNote, f, accent ? 0.11 : 0.07, accent ? 2.2 : 1.4);
+        nextNote += STEP;
+        noteIndex++;
+      }
+      // Passing a speaker: a brighter two-note chime.
+      if (active >= 0 && active !== lastActive && ctx.currentTime < tEnd - 1.5) {
+        const at = ctx.currentTime + 0.02;
+        bell(at, 1760, 0.06, 2.6);
+        bell(at + 0.04, 2637.02, 0.035, 2.2);
+      }
+      lastActive = active;
+    };
 
     let raf = 0;
     const setPos = (p: Vec3) => {
@@ -220,6 +356,7 @@ class AudioEngine {
       const t = Math.min(1, Math.max(0, (ctx.currentTime - t0) / DEMO_SECONDS));
       const s = DEMO_PATH.sample(t);
       setPos(s.world);
+      schedule(s.active);
       onFrame({ plan: s.plan, active: s.active, t });
       if (t >= 1) {
         cleanup();
@@ -232,7 +369,7 @@ class AudioEngine {
 
     const cleanup = () => {
       cancelAnimationFrame(raf);
-      sources.forEach((s) => {
+      [...sources].forEach((s) => {
         try {
           s.stop();
         } catch {

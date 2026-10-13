@@ -17,6 +17,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export function Hero() {
   const ref = useRef<HTMLElement>(null);
   const copy = useRef<HTMLDivElement>(null);
+  const formed = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
   const mobile = useIsMobile();
   const { requestDemo } = useAudio();
@@ -25,10 +26,17 @@ export function Hero() {
     reduced,
     staticValue: 0,
     onUpdate: (p) => {
-      if (!copy.current) return;
-      const out = range(0.12, 0.6, p);
-      copy.current.style.opacity = String(1 - out);
-      copy.current.style.transform = `translate3d(0, ${-out * 60}px, 0)`;
+      if (copy.current) {
+        const out = range(0.04, 0.34, p);
+        copy.current.style.opacity = String(1 - out);
+        copy.current.style.transform = `translate3d(0, ${-out * 60}px, 0)`;
+      }
+      // Caption inside the hexagon once all six speakers have formed up.
+      if (formed.current) {
+        const a = range(0.58, 0.72, p) * (1 - range(0.9, 1, p));
+        formed.current.style.opacity = String(a);
+        formed.current.style.transform = `scale(${0.96 + a * 0.04})`;
+      }
     },
   });
 
@@ -42,7 +50,7 @@ export function Hero() {
       ref={ref}
       id="top"
       aria-label="Introduction"
-      className={reduced ? 'relative h-screen' : 'relative h-[170vh]'}
+      className={reduced ? 'relative h-screen' : 'relative h-[260vh]'}
     >
       <div className="sticky top-0 h-screen overflow-hidden">
         {/* Warm room glow behind the canvas. */}
@@ -62,6 +70,20 @@ export function Hero() {
         >
           <HeroScene progress={progress} mobile={mobile} reduced={reduced} />
         </SceneCanvas>
+
+        <div
+          ref={formed}
+          aria-hidden
+          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 pb-[2vh] text-center"
+          style={{ opacity: 0 }}
+        >
+          <p className="eyebrow !text-amber">{hero.formation.eyebrow}</p>
+          <p className="display text-[clamp(0.85rem,1.6vw,1.25rem)] !leading-relaxed">
+            {hero.formation.line1}
+            <br />
+            {hero.formation.line2}
+          </p>
+        </div>
 
         <div ref={copy} className="site-x relative flex h-full flex-col pb-8 pt-24 sm:pb-10">
           <motion.p

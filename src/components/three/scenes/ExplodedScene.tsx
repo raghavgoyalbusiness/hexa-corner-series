@@ -43,9 +43,10 @@ export default function ExplodedScene({ progress, mobile }: SceneProps) {
         root.current.rotation.y = lerp(-0.35, -0.3, e) + p.current * 0.2;
         root.current.position.x = lerp(0, -0.42, e);
       } else {
-        root.current.rotation.y = lerp(-0.4, -1.08, e) + p.current * 0.35;
-        root.current.rotation.x = lerp(0.12, 0.28, e);
-        root.current.position.x = lerp(0, 0.45, e);
+        root.current.rotation.y = lerp(-0.55, -1.08, e) + p.current * 0.35;
+        root.current.rotation.x = lerp(0.18, 0.28, e);
+        root.current.position.x = lerp(1.25, 0.45, e);
+        root.current.scale.setScalar(lerp(1.45, 0.9, e));
       }
     }
     LAYERS.forEach((l, i) => {

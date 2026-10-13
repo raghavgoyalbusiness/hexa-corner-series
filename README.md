@@ -18,11 +18,11 @@ Deploy: push to a Git repo and import it in Vercel. No environment variables are
 
 | # | Section | Component | 3D scene | Behaviour |
 |---|---------|-----------|----------|-----------|
-| 1 | Hero | `sections/Hero.tsx` | `scenes/HeroScene.tsx` | Pinned. Floating speaker, slow turn, mouse-parallax tilt. "Hear it" turns sound on and starts the demo. |
+| 1 | Hero | `sections/Hero.tsx` | `scenes/HeroScene.tsx` | Pinned. A hero speaker with five more drifting in the dark around it (fog for depth, mouse parallax). On scroll all six fly into a hexagon and blue sound rings flow to the centre. "Hear it" turns sound on and starts the demo. |
 | 2 | Exploded view | `sections/ExplodedView.tsx` | `scenes/ExplodedScene.tsx` | Pinned, scroll-scrubbed. Five layers separate along Z with thin-line callouts, then reassemble. On mobile the stack explodes vertically. |
 | 3 | The Snap | `sections/Snap.tsx` | `scenes/SnapScene.tsx` | Pinned. The plate presses into a ceiling corner, then the speaker flies in and snaps with a micro-bounce and an amber flash. The click plays only if sound is on. |
 | 4 | Six corners | `sections/SixCorners.tsx` | `scenes/RoomScene.tsx` | Pinned. Pulls back from the corner to a cut-away living room. Six speakers appear one by one, and blue rings converge on the sofa's sweet spot. |
-| 5 | Spatial demo | `sections/SpatialDemo.tsx` | — (SVG plan) | A synthesised helicopter flies a lap of all six speakers through an HRTF `PannerNode`, and the active speaker glows. |
+| 5 | Spatial demo | `sections/SpatialDemo.tsx` | — (SVG plan) | "Orbit", a ~20 s synthesised piece. A Dmaj9 → Bm9 → Gmaj9 chord has one voice pinned to each speaker, a music-box melody and shimmer trail fly a lap through every corner on a moving HRTF `PannerNode`, a bell rings as it passes each speaker, and everything sits in a generated reverb. The active speaker glows. |
 | 6 | Features | `sections/Features.tsx` | — | Four cards with line icons and a hover lift. |
 | 7 | Specs | `sections/Specs.tsx` | `scenes/SpecScene.tsx` | Spec table beside a slowly rotating model. |
 | 8 | In the box | `sections/InTheBox.tsx` | `scenes/UnboxingScene.tsx` | Pinned. The lid lifts away to reveal a 3 × 2 foam tray. |

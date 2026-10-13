@@ -22,6 +22,7 @@ export const hero = {
   sub: '6 speakers. 6 corners. One immersive room.',
   primaryCta: 'Join the waitlist',
   secondaryCta: 'Hear it',
+  formation: { eyebrow: 'The Corner Series', line1: 'Six speakers', line2: 'One room' },
 };
 
 export const exploded = {
@@ -52,7 +53,7 @@ export const corners = {
 export const demo = {
   eyebrow: '05 — Listen',
   title: 'Hear the room move',
-  sub: 'A helicopter flies a lap of all six corners. Close your eyes and follow it.',
+  sub: '“Orbit”: a chord blooms from all six corners while a music-box melody circles the room. Close your eyes and follow it.',
   headphones: 'Best with headphones',
   play: 'Play demo',
   stop: 'Stop',
