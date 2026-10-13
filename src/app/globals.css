@@ -194,6 +194,24 @@ html.lenis body {
   white-space: nowrap;
 }
 
+/* Corner Sub plan: slow bass waves spreading from the Sub's corner. */
+.sub-wave {
+  transform-box: view-box;
+  transform-origin: 92px 92px;
+  opacity: 0;
+  animation: sub-wave 4.4s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+}
+@keyframes sub-wave {
+  0% {
+    transform: scale(0.2);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(8);
+    opacity: 0;
+  }
+}
+
 /* Film grain overlay. */
 .grain {
   position: fixed;
@@ -250,6 +268,11 @@ html.lenis body {
 @media (prefers-reduced-motion: reduce) {
   .grain {
     animation: none;
+  }
+  .sub-wave {
+    animation: none;
+    opacity: 0.3;
+    transform: scale(var(--s));
   }
   *,
   *::before,

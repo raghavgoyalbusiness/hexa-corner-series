@@ -1,15 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAudio } from '@/components/providers/AudioProvider';
 import { Logo } from '@/components/ui/primitives';
-import { nav } from '@/lib/content';
+import { navByPath, products } from '@/lib/content';
 import { scrollToId } from '@/lib/scroll';
 
 export function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const { enabled, toggle, supported } = useAudio();
+  const path = usePathname();
+  const items = navByPath[path] ?? [];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -30,17 +34,43 @@ export function Nav() {
       }`}
     >
       <nav aria-label="Primary" className="site-x flex h-16 items-center justify-between gap-6">
-        <a href="#top" onClick={go('top')} className="focus-ring rounded text-bone" aria-label="HEXA, back to top">
-          <Logo />
-        </a>
+        <div className="flex items-center gap-6">
+          {path === '/' ? (
+            <a href="#top" onClick={go('top')} className="focus-ring rounded text-bone" aria-label="HEXA, back to top">
+              <Logo />
+            </a>
+          ) : (
+            <Link href="/" className="focus-ring rounded text-bone" aria-label="HEXA home">
+              <Logo />
+            </Link>
+          )}
+          {/* Product switcher */}
+          <div className="hidden rounded-full border border-bone/10 p-1 md:flex" role="navigation" aria-label="Products">
+            {products.map((pr) => {
+              const active = pr.href === path;
+              return (
+                <Link
+                  key={pr.href}
+                  href={pr.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`focus-ring whitespace-nowrap rounded-full px-3 py-1.5 font-display text-[10px] uppercase tracking-wide2 transition-colors [font-stretch:112%] ${
+                    active ? 'bg-bone/10 text-bone' : 'text-bone/50 hover:text-bone'
+                  }`}
+                >
+                  {pr.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
 
-        <ul className="hidden items-center gap-8 lg:flex">
-          {nav.map((n) => (
+        <ul className="hidden items-center gap-6 xl:flex">
+          {items.map((n) => (
             <li key={n.id}>
               <a
                 href={`#${n.id}`}
                 onClick={go(n.id)}
-                className="focus-ring eyebrow rounded transition-colors hover:text-bone"
+                className="focus-ring eyebrow whitespace-nowrap rounded transition-colors hover:text-bone"
               >
                 {n.label}
               </a>
@@ -58,13 +88,13 @@ export function Nav() {
               className="focus-ring flex items-center gap-2.5 rounded-full border border-bone/15 px-3.5 py-2 transition-colors hover:border-amber/60"
             >
               <SoundBars on={enabled} />
-              <span className="eyebrow !text-[10px] !text-bone/80">{enabled ? 'Sound on' : 'Sound off'}</span>
+              <span className="eyebrow whitespace-nowrap !text-[10px] !text-bone/80">{enabled ? 'Sound on' : 'Sound off'}</span>
             </button>
           )}
           <a
             href="#waitlist"
             onClick={go('waitlist')}
-            className="focus-ring hidden rounded-full bg-bone px-5 py-2.5 font-display text-[10px] uppercase tracking-wide2 text-charcoal transition-colors [font-stretch:112%] hover:bg-amber sm:inline-flex"
+            className="focus-ring hidden whitespace-nowrap rounded-full bg-bone px-5 py-2.5 font-display text-[10px] uppercase tracking-wide2 text-charcoal transition-colors [font-stretch:112%] hover:bg-amber sm:inline-flex"
           >
             Join waitlist
           </a>

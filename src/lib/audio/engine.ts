@@ -24,6 +24,7 @@ class AudioEngine {
   private master: GainNode | null = null;
   private noise: AudioBuffer | null = null;
   private stopDemo: (() => void) | null = null;
+  private stopLow: (() => void) | null = null;
 
   get supported() {
     return typeof window !== 'undefined' && ('AudioContext' in window || 'webkitAudioContext' in window);
@@ -47,6 +48,7 @@ class AudioEngine {
   /** Silence everything (audio toggle off). */
   mute() {
     this.stopDemo?.();
+    this.stopLow?.();
     if (this.ctx && this.ctx.state === 'running') void this.ctx.suspend();
   }
 
@@ -149,6 +151,7 @@ class AudioEngine {
     const ctx = this.unlock();
     if (!ctx || !this.master) return;
     this.stopDemo?.();
+    this.stopLow?.();
 
     const t0 = ctx.currentTime + 0.08;
     const tEnd = t0 + DEMO_SECONDS;
@@ -396,6 +399,92 @@ class AudioEngine {
 
   stopSpatialDemo() {
     this.stopDemo?.();
+  }
+
+  get lowEndPlaying() {
+    return this.stopLow !== null;
+  }
+
+  /**
+   * Corner Sub preview: eight deep, punchy notes walking D → B → G → A.
+   * Gentle saturation adds harmonics so the line still reads on laptop
+   * speakers that can't reproduce the fundamental.
+   */
+  startLowEnd(onBeat: (i: number) => void, onEnd: () => void) {
+    const ctx = this.unlock();
+    if (!ctx || !this.master) return;
+    this.stopLow?.();
+    this.stopDemo?.();
+
+    const NOTES = [36.71, 36.71, 61.74, 61.74, 49.0, 49.0, 55.0, 55.0];
+    const BEAT = 1.15;
+    const t0 = ctx.currentTime + 0.1;
+    const total = NOTES.length * BEAT + 1.6;
+
+    const shaper = ctx.createWaveShaper();
+    const curve = new Float32Array(1024);
+    for (let i = 0; i < curve.length; i++) {
+      const x = (i / (curve.length - 1)) * 2 - 1;
+      curve[i] = Math.tanh(x * 2.4);
+    }
+    shaper.curve = curve;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 420;
+    const out = ctx.createGain();
+    out.gain.value = 0.9;
+    shaper.connect(lp).connect(out).connect(this.master);
+
+    const sources: AudioScheduledSourceNode[] = [];
+    const timers: number[] = [];
+    NOTES.forEach((f, i) => {
+      const at = t0 + i * BEAT;
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f * 2.2, at);
+      osc.frequency.exponentialRampToValueAtTime(f, at + 0.07);
+      const env = ctx.createGain();
+      const peak = i % 2 === 0 ? 0.9 : 0.6;
+      env.gain.setValueAtTime(0.0001, at);
+      env.gain.exponentialRampToValueAtTime(peak, at + 0.008);
+      env.gain.exponentialRampToValueAtTime(0.0001, at + BEAT * 1.25);
+      osc.connect(env).connect(shaper);
+      osc.start(at);
+      osc.stop(at + BEAT * 1.3);
+      sources.push(osc);
+      timers.push(window.setTimeout(() => onBeat(i), (at - ctx.currentTime) * 1000));
+    });
+
+    const cleanup = () => {
+      timers.forEach((id) => window.clearTimeout(id));
+      sources.forEach((s) => {
+        try {
+          s.stop();
+        } catch {
+          /* already stopped */
+        }
+      });
+      out.disconnect();
+      if (this.stopLow === stop) this.stopLow = null;
+    };
+    const endTimer = window.setTimeout(() => {
+      cleanup();
+      onEnd();
+    }, total * 1000);
+    const stop = () => {
+      window.clearTimeout(endTimer);
+      const now = ctx.currentTime;
+      out.gain.setValueAtTime(out.gain.value, now);
+      out.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+      if (this.stopLow === stop) this.stopLow = null;
+      setTimeout(cleanup, 150);
+      onEnd();
+    };
+    this.stopLow = stop;
+  }
+
+  stopLowEnd() {
+    this.stopLow?.();
   }
 }
 

@@ -174,3 +174,110 @@ export const footer = {
     { label: 'Cookies', href: '#' },
   ],
 };
+
+// ---------------------------------------------------------------------------
+// Product switcher + per-page nav.
+
+export const products = [
+  { href: '/', label: 'Corner Series' },
+  { href: '/corner-sub', label: 'Corner Sub' },
+];
+
+export const subNav = [
+  { id: 'physics', label: 'Physics' },
+  { id: 'sub-design', label: 'Design' },
+  { id: 'system', label: 'System' },
+  { id: 'low-end', label: 'Listen' },
+  { id: 'sub-specs', label: 'Specs' },
+];
+
+export const navByPath: Record<string, { id: string; label: string }[]> = {
+  '/': nav,
+  '/corner-sub': subNav,
+};
+
+// ---------------------------------------------------------------------------
+// The Corner Sub (concept). Every unconfirmed number is a ph() placeholder.
+
+export const sub = {
+  hero: {
+    eyebrow: 'HEXA — The Corner Sub',
+    title: 'The deepest seat in the room',
+    sub: 'A subwoofer shaped for the one place bass loves most: the corner.',
+    primaryCta: 'Join the Sub waitlist',
+    secondaryCta: 'Feel the low end',
+  },
+  physics: {
+    eyebrow: '01 — Why corners',
+    title: 'Physics, not power',
+    sub: 'Every surface next to a subwoofer reflects its bass back into the room. On open floor you get one. Against a wall, two. In a corner, three, and the room does the heavy lifting.',
+    stages: ['Open floor', 'Against a wall', 'In the corner'],
+    footnote: 'Illustrative boundary gain at low frequencies. Real-world gain depends on the room.',
+    footnotePlaceholder: ph('Acoustics team to confirm measured corner-loading gain'),
+  },
+  design: {
+    eyebrow: '02 — Design',
+    title: 'Quiet from the front',
+    items: [
+      {
+        icon: 'corner',
+        title: 'Fires into the corner',
+        body: 'The driver faces the walls, not you. The corner becomes part of the cabinet, and the room-facing side stays a calm wall of fabric.',
+      },
+      {
+        icon: 'dial',
+        title: 'The ring becomes a dial',
+        body: 'The serrated ring from the Corner Series moves to the top as a real dial. Turn for level, press for crossover. An amber pip shows where you are.',
+      },
+      {
+        icon: 'glow',
+        title: 'A warm floor glow',
+        body: 'A thin amber line at the base washes the floor, so the Sub reads as a lamp at night, not a box.',
+      },
+      {
+        icon: 'shape',
+        title: 'Shaped for 90°',
+        body: 'A right-triangle footprint sits flush in any floor corner and leaves no dead space behind it.',
+      },
+    ],
+  },
+  system: {
+    eyebrow: '03 — The seventh corner',
+    title: 'Six corners plus one',
+    sub: 'Bass isn’t directional, so the Sub takes whichever floor corner is free. With the Corner Series it becomes 6.1, with the low end handed off to the Sub automatically.',
+    brain: ph('Decide whether the Sub also houses the amp + HDMI eARC (the system “brain”)'),
+  },
+  lowEnd: {
+    eyebrow: '04 — Listen',
+    title: 'Feel the low end',
+    sub: 'Eight deep notes. On a laptop you’ll hear the shape; on headphones or a real sub you’ll feel it.',
+    play: 'Play the low end',
+    stop: 'Stop',
+  },
+  specs: [
+    { label: 'Driver', value: ph('8″ (20 cm) long-throw, rear-firing — target') },
+    { label: 'Amplifier', value: ph('Class D, ~150W RMS — target') },
+    { label: 'Frequency response', value: ph('28Hz – 150Hz — target') },
+    { label: 'Dimensions', value: ph('~38 × 38 × 42 cm — target') },
+    { label: 'Finish', value: 'Matte black ABS, woven acoustic fabric' },
+    { label: 'Controls', value: 'Top dial (level / crossover), amber status pip' },
+    { label: 'Connectivity', value: ph('Wired or wireless — TBD, same as Corner Series') },
+    { label: 'Room calibration', value: ph('Auto-EQ for corner loading — TBD') },
+  ] as { label: string; value: Copy }[],
+  waitlist: {
+    eyebrow: '05 — Waitlist',
+    title: 'Claim the seventh corner',
+    sub: 'Join the Sub waitlist for early access and bundle pricing with the Corner Series.',
+    pricing: ph('Sub price $XXX · bundle with Corner Series $XXX'),
+    counterLabel: 'people waiting for the Sub',
+    button: 'Join the Sub waitlist',
+    success: 'You’re on the Sub list. We’ll be in touch before launch.',
+    legal: 'One email at launch. No spam. Unsubscribe any time.',
+  },
+  teaser: {
+    eyebrow: 'Coming next',
+    title: 'The Corner Sub',
+    sub: 'A subwoofer shaped for the corner, where bass is strongest. Six corners, plus one.',
+    cta: 'Meet the Corner Sub',
+  },
+};

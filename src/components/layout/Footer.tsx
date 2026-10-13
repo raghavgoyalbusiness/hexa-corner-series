@@ -1,5 +1,6 @@
 import { Logo } from '@/components/ui/primitives';
-import { footer } from '@/lib/content';
+import Link from 'next/link';
+import { footer, products } from '@/lib/content';
 
 export function Footer() {
   return (
@@ -10,6 +11,15 @@ export function Footer() {
           <p className="max-w-xs text-sm font-light text-bone/50">The Corner Series. Surround by design.</p>
         </div>
         <div className="flex flex-col gap-8 sm:flex-row sm:gap-16">
+          <ul className="flex flex-wrap gap-x-6 gap-y-2" aria-label="Products">
+            {products.map((p) => (
+              <li key={p.href}>
+                <Link href={p.href} className="focus-ring eyebrow rounded transition-colors hover:text-amber">
+                  {p.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
           <ul className="flex flex-wrap gap-x-6 gap-y-2" aria-label="Social">
             {footer.socials.map((s) => (
               <li key={s.label}>

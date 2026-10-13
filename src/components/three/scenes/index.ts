@@ -13,3 +13,7 @@ export const RoomScene = dynamic(() => import('./RoomScene'), { ssr: false });
 export const SpecScene = dynamic(() => import('./SpecScene'), { ssr: false });
 export const UnboxingScene = dynamic(() => import('./UnboxingScene'), { ssr: false });
 export const MacroScene = dynamic(() => import('./MacroScene'), { ssr: false });
+
+export const SubHeroScene = dynamic(() => import('./sub/SubHeroScene'), { ssr: false });
+export const CornerGainScene = dynamic(() => import('./sub/CornerGainScene'), { ssr: false });
+export const SubSpecScene = dynamic(() => import('./sub/SubSpecScene'), { ssr: false });

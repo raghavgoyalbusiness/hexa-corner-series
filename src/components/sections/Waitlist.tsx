@@ -1,16 +1,27 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { useAudio } from '@/components/providers/AudioProvider';
 import { Button, Eyebrow, Reveal, Text } from '@/components/ui/primitives';
 import { audioEngine } from '@/lib/audio/engine';
-import { WAITLIST_BASE_COUNT } from '@/lib/config';
-import { waitlist } from '@/lib/content';
+import { WAITLIST_BASE_COUNTS, type ProductId } from '@/lib/config';
+import { waitlist as defaultCopy } from '@/lib/content';
 
 type Status = 'idle' | 'loading' | 'done' | 'error';
 
-export function Waitlist() {
+type WaitlistProps = {
+  product?: ProductId;
+  copy?: typeof defaultCopy;
+  /** Visual beside the form; receives a counter that bumps once per successful sign-up. */
+  visual?: (pulse: number) => ReactNode;
+};
+
+export function Waitlist({
+  product = 'corner-series',
+  copy: waitlist = defaultCopy,
+  visual = (pulse) => <SixPucks pulse={pulse} />,
+}: WaitlistProps) {
   const id = useId();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<Status>('idle');
@@ -18,15 +29,15 @@ export function Waitlist() {
   const [pulse, setPulse] = useState(0);
   const { enabled } = useAudio();
 
-  const count = useMotionValue(WAITLIST_BASE_COUNT);
+  const count = useMotionValue<number>(WAITLIST_BASE_COUNTS[product]);
   const shown = useTransform(count, (v) => Math.round(v).toLocaleString('en-US'));
 
   useEffect(() => {
-    fetch('/api/waitlist')
+    fetch(`/api/waitlist?product=${product}`)
       .then((r) => r.json())
       .then((d: { count?: number }) => typeof d.count === 'number' && animate(count, d.count, { duration: 1.2 }))
       .catch(() => {});
-  }, [count]);
+  }, [count, product]);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -37,7 +48,7 @@ export function Waitlist() {
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, company }),
+        body: JSON.stringify({ email, company, product }),
       });
       const data = (await res.json()) as { count?: number; error?: string };
       if (!res.ok) throw new Error(data.error ?? 'Something went wrong.');
@@ -125,9 +136,7 @@ export function Waitlist() {
           </p>
         </Reveal>
 
-        <Reveal delay={0.15}>
-          <SixPucks pulse={pulse} />
-        </Reveal>
+        <Reveal delay={0.15}>{visual(pulse)}</Reveal>
       </div>
     </section>
   );

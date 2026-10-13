@@ -31,9 +31,25 @@ Deploy: push to a Git repo and import it in Vercel. No environment variables are
 | 11 | FAQ | `sections/FAQ.tsx` | — | Accessible accordion. |
 | 12 | Footer | `layout/Footer.tsx` | — | Logo, socials, legal links. |
 
+### Page 2: The Corner Sub (`/corner-sub`), a concept product
+
+A corner subwoofer, the second product in the range. It has a right-triangle footprint that sits flush in a floor corner and a driver that fires into the corner (using boundary gain). The speakers' serrated ring becomes a top dial, and an amber floor-glow strip runs along the base. All specs are targets and marked TBD.
+
+| Section | Component | 3D scene | Behaviour |
+|---------|-----------|----------|-----------|
+| Hero | `sections/sub/SubHero.tsx` | `scenes/sub/SubHeroScene.tsx` | Pinned. The Sub in a lit floor corner with slow blue bass rings, a gentle orbit and mouse parallax. "Feel the low end" turns sound on and plays the bass preview. |
+| Physics | `sections/sub/CornerGain.tsx` | `scenes/sub/CornerGainScene.tsx` | Pinned, scroll-scrubbed. Open floor → one wall rises → the corner, with an illustrative dB meter (+0 → +3 → +9). Timeline in `lib/subTimeline.ts`. |
+| Design | `sections/sub/SubDesign.tsx` | — | Four cards with line diagrams. |
+| System | `sections/sub/SubSystem.tsx` | — (SVG plan) | Six speakers plus the Sub in the free rear floor corner (6.1). |
+| Listen | `sections/sub/LowEnd.tsx` | — | An eight-note bass preview (`audioEngine.startLowEnd`), with gentle saturation so it still reads on laptop speakers. |
+| Specs | `sections/sub/SubSpecs.tsx` | `scenes/sub/SubSpecScene.tsx` | A target spec table beside a turntable model. |
+| Waitlist | `sections/sub/SubWaitlist.tsx` | — | The shared `Waitlist` with `product="corner-sub"` (counted separately by `/api/waitlist`). |
+
+The nav switches its section links per page (`navByPath` in `lib/content.ts`) and has a Corner Series / Corner Sub switcher. The home page links to the Sub through `sections/NextProduct.tsx`. The procedural model is in `components/three/models/Sub.tsx` (product units, square corner at the origin, legs along +X/+Z).
+
 ```
 src/
-  app/                 layout, page, global styles, /api/waitlist
+  app/                 layout, page, global styles, /api/waitlist, /corner-sub
   components/
     layout/            Nav (audio toggle), Footer, GrainOverlay
     providers/         AudioProvider, SmoothScroll (Lenis ↔ GSAP), Providers
