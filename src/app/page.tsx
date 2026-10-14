@@ -7,6 +7,7 @@ import { Features } from '@/components/sections/Features';
 import { Specs } from '@/components/sections/Specs';
 import { InTheBox } from '@/components/sections/InTheBox';
 import { PremiumFinish } from '@/components/sections/PremiumFinish';
+import { NextProduct } from '@/components/sections/NextProduct';
 import { Waitlist } from '@/components/sections/Waitlist';
 import { FAQ } from '@/components/sections/FAQ';
 import { Footer } from '@/components/layout/Footer';
@@ -23,6 +24,7 @@ export default function Home() {
       <Specs />
       <InTheBox />
       <PremiumFinish />
+      <NextProduct />
       <Waitlist />
       <FAQ />
       <Footer />

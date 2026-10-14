@@ -12,6 +12,9 @@ type AudioState = {
   /** Bumped by the hero "Hear it" CTA; the demo section starts when it changes. */
   demoRequest: number;
   requestDemo: () => void;
+  /** Same idea for the Corner Sub "Feel the low end" CTA. */
+  lowEndRequest: number;
+  requestLowEnd: () => void;
 };
 
 const AudioCtx = createContext<AudioState | null>(null);
@@ -19,6 +22,7 @@ const AudioCtx = createContext<AudioState | null>(null);
 export function AudioProvider({ children }: { children: ReactNode }) {
   const [enabled, setEnabledState] = useState(false);
   const [demoRequest, setDemoRequest] = useState(0);
+  const [lowEndRequest, setLowEndRequest] = useState(0);
   // Assume support during SSR, confirm on the client (avoids hydration mismatch).
   const [supported, setSupported] = useState(true);
   useEffect(() => setSupported(audioEngine.supported), []);
@@ -37,9 +41,14 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     setDemoRequest((n) => n + 1);
   }, [setEnabled]);
 
+  const requestLowEnd = useCallback(() => {
+    setEnabled(true);
+    setLowEndRequest((n) => n + 1);
+  }, [setEnabled]);
+
   const value = useMemo(
-    () => ({ enabled, supported, setEnabled, toggle, demoRequest, requestDemo }),
-    [enabled, supported, setEnabled, toggle, demoRequest, requestDemo],
+    () => ({ enabled, supported, setEnabled, toggle, demoRequest, requestDemo, lowEndRequest, requestLowEnd }),
+    [enabled, supported, setEnabled, toggle, demoRequest, requestDemo, lowEndRequest, requestLowEnd],
   );
 
   return <AudioCtx.Provider value={value}>{children}</AudioCtx.Provider>;

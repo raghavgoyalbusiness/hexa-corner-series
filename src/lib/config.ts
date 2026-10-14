@@ -25,5 +25,11 @@ export const GLB_NODE_NAMES = {
   plate: 'CornerPlate',
 } as const;
 
-/** PLACEHOLDER: seed count shown before real waitlist numbers exist. */
-export const WAITLIST_BASE_COUNT = 2847;
+/** PLACEHOLDER: seed counts shown before real waitlist numbers exist. */
+export const WAITLIST_BASE_COUNTS = {
+  'corner-series': 2847,
+  'corner-sub': 612,
+} as const;
+
+export type ProductId = keyof typeof WAITLIST_BASE_COUNTS;
+export const isProductId = (v: unknown): v is ProductId => typeof v === 'string' && v in WAITLIST_BASE_COUNTS;
