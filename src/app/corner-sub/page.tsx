@@ -4,6 +4,7 @@ import { CornerGain } from '@/components/sections/sub/CornerGain';
 import { SubDesign } from '@/components/sections/sub/SubDesign';
 import { SubSystem } from '@/components/sections/sub/SubSystem';
 import { LowEnd } from '@/components/sections/sub/LowEnd';
+import { SoundTest } from '@/components/sections/SoundTest';
 import { SubSpecs } from '@/components/sections/sub/SubSpecs';
 import { SubWaitlist } from '@/components/sections/sub/SubWaitlist';
 import { Footer } from '@/components/layout/Footer';
@@ -21,6 +22,7 @@ export default function CornerSubPage() {
       <SubDesign />
       <SubSystem />
       <LowEnd />
+      <SoundTest withSub id="sub-sound-test" />
       <SubSpecs />
       <SubWaitlist />
       <Footer />

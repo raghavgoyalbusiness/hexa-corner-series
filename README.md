@@ -31,6 +31,22 @@ Deploy: push to a Git repo and import it in Vercel. No environment variables are
 | 11 | FAQ | `sections/FAQ.tsx` | — | Accessible accordion. |
 | 12 | Footer | `layout/Footer.tsx` | — | Logo, socials, legal links. |
 
+### Sound test: "Afterglow" (both pages)
+
+`sections/SoundTest.tsx` plays **"Afterglow"**, an original ~65 s lo-fi house track (92 BPM, D major) composed in code (`lib/audio/song.ts`) and synthesised live, with no audio files and no licensing. Each stem has a home speaker, so one listen tests the whole room:
+
+| Stem | Speakers |
+|------|----------|
+| Kick, bass | Front floor corners (on `/corner-sub`: the Corner Sub) |
+| Clap, e-piano keys | Front ceiling corners (keys split low → left, high → right) |
+| Hats | Rear corners, alternating left / right |
+| Pad | All around, weighted to the rear |
+| Melody | Orbits every corner in the chorus and outro |
+
+Each speaker on the plan glows when its parts hit (driven from the audio scheduler through the Web Animations API, so nothing re-renders per note). "Test each speaker" plays a short chime from one corner, or a low thump from the Sub. Use `<SoundTest withSub />` to route the kick and bass to the Sub. Mix checked by metering (not by ear): peaks around −6 dBFS, and the intro and outro sit about 10 dB under the verse and chorus.
+
+**Swapping in a recorded track:** keep `playSong`'s bus layout (one `GainNode` per speaker feeding an HRTF panner) and feed stems decoded with `decodeAudioData` into the matching buses instead of the synth voices. Make sure you hold the rights to any recording you use.
+
 ### Page 2: The Corner Sub (`/corner-sub`), a concept product
 
 A corner subwoofer, the second product in the range. It has a right-triangle footprint that sits flush in a floor corner and a driver that fires into the corner (using boundary gain). The speakers' serrated ring becomes a top dial, and an amber floor-glow strip runs along the base. All specs are targets and marked TBD.

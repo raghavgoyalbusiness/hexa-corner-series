@@ -6,7 +6,9 @@
  * Swap in recorded assets later by decoding them into AudioBuffers here.
  */
 
-import { DEMO_PATH, ROOM, SPEAKERS, speakerPoint, type Vec3 } from './speakers';
+import { hrtfPanner, makeReverb, noiseBuffer, setListener, setPannerPosition } from './dsp';
+import { pingSpeaker, playSong, type SongCallbacks } from './song';
+import { DEMO_PATH, SPEAKERS, speakerPoint, type Vec3 } from './speakers';
 
 export type DemoFrame = {
   /** Position on the top-down plan, normalised 0..1. */
@@ -22,9 +24,9 @@ const DEMO_SECONDS = 20;
 class AudioEngine {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
-  private noise: AudioBuffer | null = null;
   private stopDemo: (() => void) | null = null;
   private stopLow: (() => void) | null = null;
+  private stopSongFn: (() => void) | null = null;
 
   get supported() {
     return typeof window !== 'undefined' && ('AudioContext' in window || 'webkitAudioContext' in window);
@@ -49,16 +51,12 @@ class AudioEngine {
   mute() {
     this.stopDemo?.();
     this.stopLow?.();
+    this.stopSong();
     if (this.ctx && this.ctx.state === 'running') void this.ctx.suspend();
   }
 
   private getNoise(ctx: AudioContext) {
-    if (this.noise) return this.noise;
-    const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-    this.noise = buf;
-    return buf;
+    return noiseBuffer(ctx);
   }
 
   /** Soft magnetic "click": a short bandpassed tick over a low thump. */
@@ -120,24 +118,6 @@ class AudioEngine {
     return this.stopDemo !== null;
   }
 
-  /** Synthesised room reverb: stereo noise with an exponential tail. */
-  private makeReverb(ctx: AudioContext, seconds = 3.4) {
-    const len = Math.floor(ctx.sampleRate * seconds);
-    const ir = ctx.createBuffer(2, len, ctx.sampleRate);
-    for (let ch = 0; ch < 2; ch++) {
-      const d = ir.getChannelData(ch);
-      let lp = 0;
-      for (let i = 0; i < len; i++) {
-        // Gently low-passed noise so the tail is warm, not hissy.
-        lp = lp * 0.55 + (Math.random() * 2 - 1) * 0.45;
-        d[i] = lp * Math.pow(1 - i / len, 2.6);
-      }
-    }
-    const conv = ctx.createConvolver();
-    conv.buffer = ir;
-    return conv;
-  }
-
   /**
    * "Orbit": a ~20 s ambient piece written for six corners.
    * - A Dmaj9 → Bm9 → Gmaj9 chord blooms around the listener, one voice
@@ -152,36 +132,14 @@ class AudioEngine {
     if (!ctx || !this.master) return;
     this.stopDemo?.();
     this.stopLow?.();
+    this.stopSong();
 
     const t0 = ctx.currentTime + 0.08;
     const tEnd = t0 + DEMO_SECONDS;
 
-    // Listener on the sofa, facing the TV wall (-Z), head up (+Y).
-    const L = ROOM.listener;
-    const l = ctx.listener;
-    if (l.positionX) {
-      l.positionX.value = L[0];
-      l.positionY.value = L[1];
-      l.positionZ.value = L[2];
-      l.forwardX.value = 0;
-      l.forwardY.value = 0;
-      l.forwardZ.value = -1;
-      l.upX.value = 0;
-      l.upY.value = 1;
-      l.upZ.value = 0;
-    } else {
-      l.setPosition(L[0], L[1], L[2]);
-      l.setOrientation(0, 0, -1, 0, 1, 0);
-    }
+    setListener(ctx);
 
-    const hrtf = () => {
-      const pn = ctx.createPanner();
-      pn.panningModel = 'HRTF';
-      pn.distanceModel = 'inverse';
-      pn.refDistance = 1.2;
-      pn.rolloffFactor = 0.7;
-      return pn;
-    };
+    const hrtf = () => hrtfPanner(ctx);
 
     // Output: dry + reverb, with a gentle fade in / out.
     const out = ctx.createGain();
@@ -192,7 +150,7 @@ class AudioEngine {
     out.connect(this.master);
     const bus = ctx.createGain();
     bus.gain.value = 0.85;
-    const reverb = this.makeReverb(ctx);
+    const reverb = makeReverb(ctx);
     const wet = ctx.createGain();
     wet.gain.value = 0.55;
     bus.connect(out);
@@ -216,15 +174,7 @@ class AudioEngine {
       { at: 0.72, notes: [246.94, 293.66, 98.0, 146.83, 369.99, 440.0] }, // Gmaj9
     ];
     SPEAKERS.forEach((spk, i) => {
-      const pn = hrtf();
-      const [x, y, z] = speakerPoint(spk);
-      if (pn.positionX) {
-        pn.positionX.value = x;
-        pn.positionY.value = y;
-        pn.positionZ.value = z;
-      } else {
-        pn.setPosition(x, y, z);
-      }
+      const pn = hrtfPanner(ctx, speakerPoint(spk));
       const lp = ctx.createBiquadFilter();
       lp.type = 'lowpass';
       lp.frequency.value = 900;
@@ -343,16 +293,7 @@ class AudioEngine {
     };
 
     let raf = 0;
-    const setPos = (p: Vec3) => {
-      if (panner.positionX) {
-        const now = ctx.currentTime;
-        panner.positionX.setTargetAtTime(p[0], now, 0.03);
-        panner.positionY.setTargetAtTime(p[1], now, 0.03);
-        panner.positionZ.setTargetAtTime(p[2], now, 0.03);
-      } else {
-        panner.setPosition(p[0], p[1], p[2]);
-      }
-    };
+    const setPos = (p: Vec3) => setPannerPosition(panner, p, { ctx, tau: 0.03 });
     setPos(DEMO_PATH.sample(0).world);
 
     const loop = () => {
@@ -415,6 +356,7 @@ class AudioEngine {
     if (!ctx || !this.master) return;
     this.stopLow?.();
     this.stopDemo?.();
+    this.stopSong();
 
     const NOTES = [36.71, 36.71, 61.74, 61.74, 49.0, 49.0, 55.0, 55.0];
     const BEAT = 1.15;
@@ -485,6 +427,51 @@ class AudioEngine {
 
   stopLowEnd() {
     this.stopLow?.();
+  }
+
+  /** "Afterglow", the six-corner test song (see song.ts). */
+  startSong(cb: SongCallbacks, opts: { withSub?: boolean } = {}) {
+    const ctx = this.unlock();
+    if (!ctx || !this.master) return;
+    this.stopSong();
+    this.stopDemo?.();
+    this.stopLow?.();
+    const stop = playSong(
+      ctx,
+      this.master,
+      {
+        ...cb,
+        onEnd: () => {
+          if (this.stopSongFn === wrapped) this.stopSongFn = null;
+          cb.onEnd();
+        },
+      },
+      opts,
+    );
+    const wrapped = () => {
+      stop();
+      if (this.stopSongFn === wrapped) this.stopSongFn = null;
+      cb.onEnd();
+    };
+    this.stopSongFn = wrapped;
+  }
+
+  stopSong() {
+    this.stopSongFn?.();
+  }
+
+  get songPlaying() {
+    return this.stopSongFn !== null;
+  }
+
+  /** Chime from one speaker (6 = the Corner Sub). Stops anything else playing. */
+  testSpeaker(index: number) {
+    const ctx = this.unlock();
+    if (!ctx || !this.master) return;
+    this.stopSong();
+    this.stopDemo?.();
+    this.stopLow?.();
+    pingSpeaker(ctx, this.master, index);
   }
 }
 
