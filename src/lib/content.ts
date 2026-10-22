@@ -281,3 +281,21 @@ export const sub = {
     cta: 'Meet the Corner Sub',
   },
 };
+
+// ---------------------------------------------------------------------------
+// Sound test: "Afterglow", an original track written for six corners.
+
+export const soundTest = {
+  eyebrow: 'Sound test',
+  title: 'Put on a song',
+  sub: '“Afterglow” was written for six corners. Every instrument has a home speaker, so one listen tests your whole room. Watch each corner light up as its part plays.',
+  headphones: 'Best with headphones',
+  play: 'Play Afterglow',
+  stop: 'Stop',
+  testTitle: 'Test each speaker',
+  note: 'Original track, synthesised live in your browser. Nothing to download.',
+  withSub: {
+    title: 'Hear it in a song',
+    sub: 'The same six-corner mix, with the kick and bass handed to the Corner Sub in the rear corner. Feel the low end arrive from the floor while everything else stays put.',
+  },
+};

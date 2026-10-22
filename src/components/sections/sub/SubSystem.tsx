@@ -1,16 +1,10 @@
 'use client';
 
 import { Eyebrow, Reveal, Text } from '@/components/ui/primitives';
-import { ROOM, SPEAKERS } from '@/lib/audio/speakers';
+import { LISTENER_PLAN as LISTENER, SPEAKERS, SUB_PLAN as SUB_AT } from '@/lib/audio/speakers';
 import { sub } from '@/lib/content';
 
 const P = (v: number) => (v * 100).toFixed(2);
-const LISTENER = {
-  x: 0.08 + 0.84 * ((ROOM.listener[0] + ROOM.w / 2) / ROOM.w),
-  y: 0.08 + 0.84 * ((ROOM.listener[2] + ROOM.d / 2) / ROOM.d),
-};
-/** The Sub takes the free rear-right floor corner (inset like the other floor units). */
-const SUB_AT = { x: 0.92 - 0.085, y: 0.92 - 0.085 };
 
 export function SubSystem() {
   return (

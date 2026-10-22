@@ -3,6 +3,7 @@ import { ExplodedView } from '@/components/sections/ExplodedView';
 import { Snap } from '@/components/sections/Snap';
 import { SixCorners } from '@/components/sections/SixCorners';
 import { SpatialDemo } from '@/components/sections/SpatialDemo';
+import { SoundTest } from '@/components/sections/SoundTest';
 import { Features } from '@/components/sections/Features';
 import { Specs } from '@/components/sections/Specs';
 import { InTheBox } from '@/components/sections/InTheBox';
@@ -20,6 +21,7 @@ export default function Home() {
       <Snap />
       <SixCorners />
       <SpatialDemo />
+      <SoundTest />
       <Features />
       <Specs />
       <InTheBox />

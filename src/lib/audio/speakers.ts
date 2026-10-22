@@ -129,3 +129,12 @@ export const DEMO_PATH = {
     return { world, plan, active };
   },
 };
+
+/** Where the Corner Sub sits on the plan: the free rear-right floor corner, inset like the other floor units. */
+export const SUB_PLAN = { x: 0.92 - 0.085, y: 0.92 - 0.085 };
+
+/** The listener's head on the plan. */
+export const LISTENER_PLAN = {
+  x: 0.08 + 0.84 * ((ROOM.listener[0] + ROOM.w / 2) / ROOM.w),
+  y: 0.08 + 0.84 * ((ROOM.listener[2] + ROOM.d / 2) / ROOM.d),
+};
